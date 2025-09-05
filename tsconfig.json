@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "resolveJsonModule": true,
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "strict": true,
+        "skipLibCheck": true,
+        "jsx": "react-jsx",
+        "jsxImportSource": "preact",
+        "baseUrl": "."
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}

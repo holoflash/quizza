@@ -1,0 +1,83 @@
+{
+    "env": {
+        "browser": true,
+        "commonjs": true,
+        "es6": true,
+        "node": true
+    },
+    "extends": [
+        "eslint:recommended",
+        "plugin:prettier/recommended"
+    ],
+    "globals": {
+        "Atomics": "readonly",
+        "SharedArrayBuffer": "readonly"
+    },
+    "parserOptions": {
+        "ecmaVersion": 2020,
+        "sourceType": "module"
+    },
+    "overrides": [
+        {
+            "files": [
+                "./**/*.ts",
+                "./**/*.tsx"
+            ],
+            "plugins": [
+                "@typescript-eslint",
+                "require-form-method",
+                "react"
+            ],
+            "extends": [
+                "plugin:@typescript-eslint/recommended",
+                "plugin:prettier/recommended"
+            ],
+            "parser": "@typescript-eslint/parser",
+            "settings": {
+                "react": {
+                    "version": "detect",
+                    "pragma": "h"
+                }
+            },
+            "parserOptions": {
+                "project": [
+                    "./tsconfig.json"
+                ],
+                "ecmaFeatures": {
+                    "jsx": true
+                }
+            },
+            "rules": {
+                "@typescript-eslint/no-require-imports": "off",
+                "@typescript-eslint/no-explicit-any": "off",
+                "@typescript-eslint/no-var-requires": "off",
+                "prettier/prettier": "warn",
+                "@typescript-eslint/no-floating-promises": [
+                    "warn",
+                    {
+                        "ignoreIIFE": true
+                    }
+                ],
+                "require-form-method/require-form-method": "error",
+                "@typescript-eslint/no-unnecessary-condition": "warn",
+                "@typescript-eslint/no-unused-vars": [
+                    "warn",
+                    {
+                        "argsIgnorePattern": "^_",
+                        "varsIgnorePattern": "^_",
+                        "caughtErrorsIgnorePattern": "^_"
+                    }
+                ],
+                "react/jsx-key": "error"
+            }
+        }
+    ],
+    "ignorePatterns": [
+        "node_modules/",
+        "dist/"
+    ],
+    "rules": {
+        "prefer-template": "warn",
+        "prettier/prettier": "warn"
+    }
+}
