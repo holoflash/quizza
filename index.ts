@@ -1,4 +1,3 @@
-// server/index.ts
 import express from "express";
 import { Server } from "socket.io";
 import { createServer } from "http";
@@ -15,7 +14,6 @@ const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const app = express();
 const server = createServer(app);
 
-// https://socket.io/docs/v4/typescript/
 const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
@@ -29,7 +27,7 @@ const PORT = process.env.PORT || 4000;
 
 const rooms: Record<
   string,
-  { hostId: string; players: { id: string; name: string }[] }
+  { hostId: string; players: { id: string; clientId: string }[] }
 > = {};
 
 const generateRoomCode = () => {
@@ -39,72 +37,86 @@ const generateRoomCode = () => {
 io.on("connection", (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  socket.on("createRoom", (callback) => {
+  socket.on("createRoom", ({ clientId }, callback) => {
     let roomCode = generateRoomCode();
     while (rooms[roomCode]) {
       roomCode = generateRoomCode();
     }
 
     socket.join(roomCode);
+    socket.data.roomCode = roomCode;
+    socket.data.clientId = clientId;
+
     rooms[roomCode] = {
       hostId: socket.id,
-      players: [{ id: socket.id, name: "Host" }],
+      players: [{ id: socket.id, clientId }],
     };
 
-    // Store room code on the socket instance for easy access later
-    (socket as any).roomCode = roomCode;
-
-    // Send the created room details back to the host
     callback({ success: true, roomCode, players: rooms[roomCode].players });
-    console.log(`Room created: ${roomCode} by ${socket.id}`);
+    console.log(`Room created: ${roomCode} by ${clientId} (${socket.id})`);
   });
 
-  // Event for players to join an existing room
-  socket.on("joinRoom", ({ roomCode, name }, callback) => {
+  socket.on("joinRoom", ({ roomCode, clientId }, callback) => {
+    if (!roomCode) {
+      return callback({ success: false, message: "Room code is required." });
+    }
     const room = rooms[roomCode];
-
     if (!room) {
-      // If room does not exist, inform the client
       return callback({ success: false, message: "Room not found." });
     }
 
+    const existingPlayerIndex = room.players.findIndex(
+      (player) => player.clientId === clientId,
+    );
+
+    if (existingPlayerIndex !== -1) {
+      room.players[existingPlayerIndex].id = socket.id;
+      console.log(`Player ${clientId} re-joined room ${roomCode}`);
+    } else {
+      room.players.push({ id: socket.id, clientId });
+      console.log(`User ${socket.id} joined room ${roomCode} as ${clientId}`);
+    }
+
     socket.join(roomCode);
-    room.players.push({ id: socket.id, name });
+    socket.data.roomCode = roomCode;
+    socket.data.clientId = clientId;
 
-    // Store room code on the socket instance
-    (socket as any).roomCode = roomCode;
-
-    // Inform the joining player of success
     callback({ success: true, players: room.players });
 
-    // Broadcast the updated player list to everyone in the room
     io.to(roomCode).emit("roomUpdate", { players: room.players });
-    console.log(`User ${socket.id} joined room ${roomCode}`);
   });
 
-  // Handle user disconnection
-  socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
-    const roomCode = (socket as any).roomCode;
+  socket.on("leaveRoom", (callback) => {
+    const roomCode = socket.data.roomCode;
+    if (!roomCode || !rooms[roomCode]) {
+      console.log(`User ${socket.id} attempted to leave a non-existent room.`);
+      return callback();
+    }
+
     const room = rooms[roomCode];
 
-    if (room) {
-      // Remove the player from the room's player list
-      room.players = room.players.filter((player) => player.id !== socket.id);
-
-      // If the room is empty, delete it
-      if (room.players.length === 0) {
-        delete rooms[roomCode];
-        console.log(`Room ${roomCode} is empty and has been deleted.`);
-      } else {
-        // If the disconnected user was the host, assign a new host
-        if (room.hostId === socket.id) {
-          room.hostId = room.players[0].id; // New host is the next player in the list
-        }
-        // Broadcast the updated player list to the remaining players
-        io.to(roomCode).emit("roomUpdate", { players: room.players });
-      }
+    if (socket.id === room.hostId) {
+      io.to(roomCode).emit("roomUpdate", { players: [] });
+      io.in(roomCode).socketsLeave(roomCode);
+      delete rooms[roomCode];
+      console.log(`Host ${socket.id} left. Room ${roomCode} deleted.`);
+    } else {
+      room.players = room.players.filter(
+        (player) => player.clientId !== socket.data.clientId,
+      );
+      socket.leave(roomCode);
+      io.to(roomCode).emit("roomUpdate", { players: room.players });
+      console.log(`Player ${socket.id} left room ${roomCode}.`);
     }
+
+    delete socket.data.roomCode;
+    delete socket.data.clientId;
+
+    callback();
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.id}`);
   });
 });
 

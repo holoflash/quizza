@@ -1,32 +1,35 @@
 // https://socket.io/docs/v4/typescript/
 export interface ServerToClientEvents {
-  roomUpdate: (data: { players: { id: string; name: string }[] }) => void;
+  roomUpdate: (data: { players: { id: string; clientId: string }[] }) => void;
 }
 
 export interface ClientToServerEvents {
   createRoom: (
+    data: { clientId: string },
     callback: (response: {
       success: boolean;
       roomCode?: string;
-      players?: { id: string; name: string }[];
+      players?: { id: string; clientId: string }[];
     }) => void,
   ) => void;
 
   joinRoom: (
-    data: { roomCode: string; name: string },
+    data: { roomCode: string; clientId: string },
     callback: (response: {
       success: boolean;
       message?: string;
-      players?: { id: string; name: string }[];
+      players?: { id: string; clientId: string }[];
     }) => void,
   ) => void;
+
+  leaveRoom: (callback: () => void) => void;
 }
+
 export interface InterServerEvents {
   ping: () => void;
 }
 
 export interface SocketData {
-  name: string;
-  age: number;
   roomCode?: string;
+  clientId?: string;
 }
