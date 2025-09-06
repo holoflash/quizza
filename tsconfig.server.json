@@ -4,12 +4,10 @@
         "outDir": "./dist",
         "rootDir": ".",
         "noEmit": false,
-        "module": "esnext"
+        "module": "ESnext",
+        "declaration": false
     },
     "include": [
         "./server/**/*.ts"
     ],
-    "exclude": [
-        "node_modules"
-    ]
 }

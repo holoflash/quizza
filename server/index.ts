@@ -2,7 +2,7 @@ import express from "express";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import path from "path";
-import {
+import type {
   ClientToServerEvents,
   ServerToClientEvents,
   InterServerEvents,
@@ -19,7 +19,6 @@ const io = new Server<
   SocketData
 >(server, { cors: { origin: "*" } });
 
-// Serve static files from dist/client
 app.use(express.static(path.join(__dirname, "../client")));
 
 const PORT = process.env.PORT || 4000;

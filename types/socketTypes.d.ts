@@ -1,4 +1,4 @@
-// https://socket.io/docs/v4/typescript/
+// Shared socket types for both client and server
 export interface ServerToClientEvents {
   roomUpdate: (data: { players: { id: string; clientId: string }[] }) => void;
   roomClosed: () => void;

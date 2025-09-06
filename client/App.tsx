@@ -10,20 +10,19 @@ export const App = () => {
   const players = useSignal<Players>([]);
   const error = useSignal<string | null>(null);
   const inLobby = useSignal(true);
-  const path = window.location.pathname;
-  const roomCodeFromPath =
-    path.length > 1 ? decodeURIComponent(path.slice(1)).toUpperCase() : null;
+  const params = new URLSearchParams(window.location.search);
+  const roomCodeFromQuery = params.get("room")?.toUpperCase() || null;
 
   useEffect(() => {
-    if (!roomCodeFromPath) return;
+    if (!roomCodeFromQuery) return;
 
     socket.connect();
     socket.emit(
       "joinRoom",
-      { roomCode: roomCodeFromPath, clientId: player.value.clientId },
+      { roomCode: roomCodeFromQuery, clientId: player.value.clientId },
       (response: any) => {
         if (response.success) {
-          setPlayer(player, { roomCode: roomCodeFromPath });
+          setPlayer(player, { roomCode: roomCodeFromQuery });
           players.value = response.players;
           inLobby.value = false;
         } else {
@@ -58,7 +57,7 @@ export const App = () => {
       socket.off("roomUpdate", onRoomUpdate);
       socket.off("roomClosed", onRoomClosed);
     };
-  }, [roomCodeFromPath]);
+  }, [roomCodeFromQuery]);
 
   const handleCreateRoom = () => {
     socket.connect();
@@ -69,7 +68,7 @@ export const App = () => {
         if (response.success) {
           setPlayer(player, { roomCode: response.roomCode });
           players.value = response.players;
-          window.history.pushState({}, "", `/${response.roomCode}`);
+          window.history.pushState({}, "", `/?room=${response.roomCode}`);
           inLobby.value = false;
         }
       },
