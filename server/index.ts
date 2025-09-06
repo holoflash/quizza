@@ -14,6 +14,12 @@ import { Quiz } from "client/components/Lobby";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
+const mimeTypes: Record<string, string> = {
+  ".js": "application/javascript",
+  ".html": "text/html",
+  ".svg": "image/svg+xml",
+};
+
 const server = createServer((req, res) => {
   const filePath = path.join(
     __dirname,
@@ -26,7 +32,9 @@ const server = createServer((req, res) => {
       res.end("Not Found");
       return;
     }
-    res.writeHead(200);
+    const ext = path.extname(filePath);
+    const mimeType = mimeTypes[ext] || "application/octet-stream";
+    res.writeHead(200, { "Content-Type": mimeType });
     res.end(data);
   });
 });
