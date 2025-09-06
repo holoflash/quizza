@@ -1,7 +1,6 @@
 import { useEffect } from "preact/hooks";
 import { useSignal } from "@preact/signals";
-import { socket } from "./config";
-import * as styles from "./styles";
+import { socket } from "./core/socketClient";
 
 type Player = {
   roomCode: string | null;
@@ -78,16 +77,6 @@ export const App = () => {
     );
   };
 
-  const handleJoinRoom = (code: string) => {
-    if (!code.trim()) {
-      error.value = "Please enter a room code";
-      return;
-    }
-    error.value = null;
-    window.history.pushState({}, "", `/${code.toUpperCase()}`);
-    inLobby.value = false;
-  };
-
   const handleLeaveRoom = () => {
     socket.emit("leaveRoom", () => {
       players.value = [];
@@ -107,50 +96,39 @@ export const App = () => {
     players.value[0].clientId === player.value.clientId;
 
   return (
-    <div class={styles.appGlobal}>
-      <div class={styles.container}>
+    <div class={""}>
+      <div class={""}>
         {inLobby.value ? (
           <>
-            <h1 class={styles.title}>Quiz Room 🚀</h1>
-            <button class={styles.button} onClick={handleCreateRoom}>
+            <h1 class={""}>Quiz Room 🚀</h1>
+            <button class={""} onClick={handleCreateRoom}>
               Create a New Room
             </button>
             <hr />
           </>
         ) : (
           <>
-            <h1 class={styles.title}>
+            <h1 class={""}>
               Room Code:
-              <span class={styles.roomCode}>{player.value.roomCode}</span>
+              <span class={""}>{player.value.roomCode}</span>
             </h1>
-            <button class={styles.button} onClick={copyUrlToClipboard}>
+            <button class={""} onClick={copyUrlToClipboard}>
               📋 Copy Share URL
             </button>
-            <button
-              onClick={handleLeaveRoom}
-              class={styles.button}
-              style={
-                isHost
-                  ? {
-                      backgroundColor: styles.colors.sus,
-                      color: styles.colors.white,
-                    }
-                  : {}
-              }
-            >
+            <button onClick={handleLeaveRoom} class={""}>
               {isHost ? "Leave Room & End Game" : "Leave Room"}
             </button>
             <h2>Players in this room:</h2>
-            <ul class={styles.playerList}>
+            <ul class={""}>
               {players.value.map((p) => (
-                <li class={styles.playerItem} key={p.id}>
+                <li class={""} key={p.id}>
                   {p.clientId} {p.clientId === player.value.clientId && "(You)"}
                 </li>
               ))}
             </ul>
           </>
         )}
-        {error.value && <div class={styles.errorMessage}>{error.value}</div>}
+        {error.value && <div class={""}>{error.value}</div>}
       </div>
     </div>
   );
