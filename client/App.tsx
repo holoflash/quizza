@@ -1,32 +1,15 @@
 import { useEffect } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { socket } from "./core/socketClient";
-
-type Player = {
-  roomCode: string | null;
-  clientId: string;
-};
+import { usePlayerSignal, setPlayer } from "./features/player";
 
 type Players = { id: string; clientId: string }[];
 
-const getInitialPlayer = (): Player => {
-  const stored = localStorage.getItem("playerState");
-  return stored
-    ? JSON.parse(stored)
-    : { roomCode: null, clientId: crypto.randomUUID() };
-};
-
 export const App = () => {
+  const player = usePlayerSignal();
   const players = useSignal<Players>([]);
   const error = useSignal<string | null>(null);
   const inLobby = useSignal(true);
-  const player = useSignal<Player>(getInitialPlayer());
-
-  const setPlayer = (update: Partial<Player>) => {
-    player.value = { ...player.value, ...update };
-    localStorage.setItem("playerState", JSON.stringify(player.value));
-  };
-
   const path = window.location.pathname;
   const roomCodeFromPath =
     path.length > 1 ? decodeURIComponent(path.slice(1)).toUpperCase() : null;
@@ -40,7 +23,7 @@ export const App = () => {
       { roomCode: roomCodeFromPath, clientId: player.value.clientId },
       (response: any) => {
         if (response.success) {
-          setPlayer({ roomCode: roomCodeFromPath });
+          setPlayer(player, { roomCode: roomCodeFromPath });
           players.value = response.players;
           inLobby.value = false;
         } else {
@@ -50,14 +33,30 @@ export const App = () => {
     );
 
     const onRoomUpdate = (data: { players: Players }) => {
+      if (data.players.length === 0) {
+        players.value = [];
+        window.history.pushState({}, "", "/");
+        localStorage.clear();
+        inLobby.value = true;
+      }
       players.value = data.players;
     };
 
+    const onRoomClosed = () => {
+      players.value = [];
+      window.history.pushState({}, "", "/");
+      localStorage.clear();
+      inLobby.value = true;
+      alert("The host has ended the game. Returning to start page.");
+    };
+
     socket.on("roomUpdate", onRoomUpdate);
+    socket.on("roomClosed", onRoomClosed);
 
     return () => {
       socket.disconnect();
       socket.off("roomUpdate", onRoomUpdate);
+      socket.off("roomClosed", onRoomClosed);
     };
   }, [roomCodeFromPath]);
 
@@ -68,7 +67,7 @@ export const App = () => {
       { clientId: player.value.clientId },
       (response: any) => {
         if (response.success) {
-          setPlayer({ roomCode: response.roomCode });
+          setPlayer(player, { roomCode: response.roomCode });
           players.value = response.players;
           window.history.pushState({}, "", `/${response.roomCode}`);
           inLobby.value = false;
@@ -86,9 +85,8 @@ export const App = () => {
     });
   };
 
-  const copyUrlToClipboard = () => {
-    navigator.clipboard.writeText(window.location.href);
-    alert("Room URL copied to clipboard!");
+  const copyUrlToClipboard = async () => {
+    await navigator.clipboard.writeText(window.location.href);
   };
 
   const isHost =

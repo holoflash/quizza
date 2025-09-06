@@ -1,6 +1,7 @@
 // https://socket.io/docs/v4/typescript/
 export interface ServerToClientEvents {
   roomUpdate: (data: { players: { id: string; clientId: string }[] }) => void;
+  roomClosed: () => void;
 }
 
 export interface ClientToServerEvents {

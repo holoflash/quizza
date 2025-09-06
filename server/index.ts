@@ -4,16 +4,14 @@ import { createServer } from "http";
 import path from "path";
 import {
   ClientToServerEvents,
-  InterServerEvents,
   ServerToClientEvents,
+  InterServerEvents,
   SocketData,
 } from "types/socketTypes";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
-
 const app = express();
 const server = createServer(app);
-
 const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
@@ -21,63 +19,59 @@ const io = new Server<
   SocketData
 >(server, { cors: { origin: "*" } });
 
-app.use(express.static(path.join(__dirname, "../dist")));
+// Serve static files from dist/client
+app.use(express.static(path.join(__dirname, "../client")));
 
 const PORT = process.env.PORT || 4000;
 
-const rooms: Record<
-  string,
-  { hostId: string; players: { id: string; clientId: string }[] }
-> = {};
+const rooms: {
+  [key: string]:
+    | { hostClientId: string; players: { id: string; clientId: string }[] }
+    | undefined;
+} = {};
 
 const generateRoomCode = () => {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
 };
 
 io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
-  socket.on("createRoom", ({ clientId }, callback) => {
+  socket.on("createRoom", async ({ clientId }, callback) => {
     let roomCode = generateRoomCode();
-    while (rooms[roomCode]) {
+    while (typeof rooms[roomCode] !== "undefined") {
       roomCode = generateRoomCode();
     }
 
-    socket.join(roomCode);
+    await socket.join(roomCode);
     socket.data.roomCode = roomCode;
     socket.data.clientId = clientId;
 
-    rooms[roomCode] = {
-      hostId: socket.id,
+    const newRoom = {
+      hostClientId: clientId,
       players: [{ id: socket.id, clientId }],
     };
 
-    callback({ success: true, roomCode, players: rooms[roomCode].players });
-    console.log(`Room created: ${roomCode} by ${clientId} (${socket.id})`);
+    rooms[roomCode] = newRoom;
+
+    callback({ success: true, roomCode, players: newRoom.players });
   });
 
-  socket.on("joinRoom", ({ roomCode, clientId }, callback) => {
-    if (!roomCode) {
-      return callback({ success: false, message: "Room code is required." });
-    }
+  socket.on("joinRoom", async ({ roomCode, clientId }, callback) => {
     const room = rooms[roomCode];
     if (!room) {
       return callback({ success: false, message: "Room not found." });
     }
 
-    const existingPlayerIndex = room.players.findIndex(
+    const existingPlayer = room.players.find(
       (player) => player.clientId === clientId,
     );
 
-    if (existingPlayerIndex !== -1) {
-      room.players[existingPlayerIndex].id = socket.id;
-      console.log(`Player ${clientId} re-joined room ${roomCode}`);
+    if (existingPlayer) {
+      existingPlayer.id = socket.id;
     } else {
       room.players.push({ id: socket.id, clientId });
-      console.log(`User ${socket.id} joined room ${roomCode} as ${clientId}`);
     }
 
-    socket.join(roomCode);
+    await socket.join(roomCode);
     socket.data.roomCode = roomCode;
     socket.data.clientId = clientId;
 
@@ -86,25 +80,28 @@ io.on("connection", (socket) => {
     io.to(roomCode).emit("roomUpdate", { players: room.players });
   });
 
-  socket.on("leaveRoom", (callback) => {
-    const roomCode = socket.data.roomCode;
-    if (!roomCode || !rooms[roomCode]) {
-      console.log(`User ${socket.id} attempted to leave a non-existent room.`);
-      return callback();
-    }
-
+  socket.on("leaveRoom", async (callback) => {
+    const roomCode = socket.data.roomCode as string;
     const room = rooms[roomCode];
 
-    if (socket.id === room.hostId) {
-      io.to(roomCode).emit("roomUpdate", { players: [] });
+    if (!room) {
+      console.log("room not found");
+      callback();
+      return;
+    }
+
+    if (socket.data.clientId === room.hostClientId) {
+      io.to(roomCode).emit("roomClosed");
       io.in(roomCode).socketsLeave(roomCode);
       delete rooms[roomCode];
-      console.log(`Host ${socket.id} left. Room ${roomCode} deleted.`);
+      console.log(
+        `Host ${socket.data.clientId} left. Room ${roomCode} deleted.`,
+      );
     } else {
       room.players = room.players.filter(
         (player) => player.clientId !== socket.data.clientId,
       );
-      socket.leave(roomCode);
+      await socket.leave(roomCode);
       io.to(roomCode).emit("roomUpdate", { players: room.players });
       console.log(`Player ${socket.id} left room ${roomCode}.`);
     }
