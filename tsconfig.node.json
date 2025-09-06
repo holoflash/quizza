@@ -12,7 +12,4 @@
     "include": [
         "vite.config.ts"
     ],
-    "exclude": [
-        "types"
-    ]
 }

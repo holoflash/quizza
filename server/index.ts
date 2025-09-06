@@ -7,7 +7,9 @@ import type {
   ServerToClientEvents,
   InterServerEvents,
   SocketData,
-} from "types/socketTypes";
+} from "socketTypes";
+import { Player } from "client/App";
+import { Quiz } from "client/components/Lobby";
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const app = express();
@@ -25,7 +27,7 @@ const PORT = process.env.PORT || 4000;
 
 const rooms: {
   [key: string]:
-    | { hostClientId: string; players: { id: string; clientId: string }[] }
+    | { hostClientId: string; playersInRoom: Player[]; quiz?: Quiz }
     | undefined;
 } = {};
 
@@ -34,7 +36,7 @@ const generateRoomCode = () => {
 };
 
 io.on("connection", (socket) => {
-  socket.on("createRoom", async ({ clientId }, callback) => {
+  socket.on("createRoom", async ({ clientId, name, quiz }, callback) => {
     let roomCode = generateRoomCode();
     while (typeof rooms[roomCode] !== "undefined") {
       roomCode = generateRoomCode();
@@ -46,37 +48,40 @@ io.on("connection", (socket) => {
 
     const newRoom = {
       hostClientId: clientId,
-      players: [{ id: socket.id, clientId }],
+      playersInRoom: [{ clientId, name, roomCode }],
+      quiz,
     };
 
     rooms[roomCode] = newRoom;
 
-    callback({ success: true, roomCode, players: newRoom.players });
+    callback({ success: true, roomCode, playersInRoom: newRoom.playersInRoom });
   });
 
-  socket.on("joinRoom", async ({ roomCode, clientId }, callback) => {
+  socket.on("joinRoom", async ({ roomCode, clientId, name }, callback) => {
     const room = rooms[roomCode];
     if (!room) {
       return callback({ success: false, message: "Room not found." });
     }
 
-    const existingPlayer = room.players.find(
-      (player) => player.clientId === clientId,
+    const existingPlayer = room.playersInRoom.find(
+      (player: Player) => player.clientId === clientId,
     );
 
-    if (existingPlayer) {
-      existingPlayer.id = socket.id;
-    } else {
-      room.players.push({ id: socket.id, clientId });
+    if (!existingPlayer) {
+      room.playersInRoom.push({ clientId, name, roomCode });
     }
 
     await socket.join(roomCode);
     socket.data.roomCode = roomCode;
     socket.data.clientId = clientId;
 
-    callback({ success: true, players: room.players });
+    callback({
+      success: true,
+      playersInRoom: room.playersInRoom,
+      quiz: room.quiz,
+    });
 
-    io.to(roomCode).emit("roomUpdate", { players: room.players });
+    io.to(roomCode).emit("roomUpdate", { playersInRoom: room.playersInRoom });
   });
 
   socket.on("leaveRoom", async (callback) => {
@@ -97,11 +102,11 @@ io.on("connection", (socket) => {
         `Host ${socket.data.clientId} left. Room ${roomCode} deleted.`,
       );
     } else {
-      room.players = room.players.filter(
-        (player) => player.clientId !== socket.data.clientId,
+      room.playersInRoom = room.playersInRoom.filter(
+        (player: Player) => player.clientId !== socket.data.clientId,
       );
       await socket.leave(roomCode);
-      io.to(roomCode).emit("roomUpdate", { players: room.players });
+      io.to(roomCode).emit("roomUpdate", { playersInRoom: room.playersInRoom });
       console.log(`Player ${socket.id} left room ${roomCode}.`);
     }
 
@@ -109,10 +114,6 @@ io.on("connection", (socket) => {
     delete socket.data.clientId;
 
     callback();
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`User disconnected: ${socket.id}`);
   });
 });
 

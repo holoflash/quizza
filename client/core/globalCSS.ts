@@ -8,10 +8,10 @@ injectGlobal`
     font-size: 100%;
     font: inherit;
     vertical-align: baseline;
-  }
-  body {
-    font-family: sans-serif;
-    font-size: 16px;
-    font-weight: normal;
+    }
+    body {
+      font-family: sans-serif;
+      font-size: 16px;
+      font-weight: normal;
   }
 `;

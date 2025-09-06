@@ -1,25 +1,29 @@
+import { Player } from "client/App";
+import { Quiz } from "client/components/Lobby";
+
 // Shared socket types for both client and server
 export interface ServerToClientEvents {
-  roomUpdate: (data: { players: { id: string; clientId: string }[] }) => void;
+  roomUpdate: (data: { playersInRoom: Player[] }) => void;
   roomClosed: () => void;
 }
 
 export interface ClientToServerEvents {
   createRoom: (
-    data: { clientId: string },
+    data: { clientId: string; name: string; quiz?: Quiz },
     callback: (response: {
       success: boolean;
       roomCode?: string;
-      players?: { id: string; clientId: string }[];
+      playersInRoom?: Player[];
     }) => void,
   ) => void;
 
   joinRoom: (
-    data: { roomCode: string; clientId: string },
+    data: { roomCode: string; clientId: string; name: string },
     callback: (response: {
       success: boolean;
       message?: string;
-      players?: { id: string; clientId: string }[];
+      playersInRoom?: Player[];
+      quiz?: Quiz;
     }) => void,
   ) => void;
 

@@ -1,13 +1,36 @@
 import { useEffect } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { socket } from "./core/socketClient";
-import { usePlayerSignal, setPlayer } from "./features/player";
+import { Lobby, Quiz } from "./components/Lobby";
+import { Game } from "./components/Game";
+import { randomName } from "./utils/getRandomName";
 
-type Players = { id: string; clientId: string }[];
+export type Player = {
+  roomCode: string | null;
+  clientId: string;
+  name: string;
+  quiz?: Quiz;
+};
+
+export type PlayersInRoom = Player[];
+
+const usePlayerSignal = () => {
+  const stored =
+    typeof window !== "undefined" ? localStorage.getItem("playerState") : null;
+  const initial: Player = stored
+    ? JSON.parse(stored)
+    : { roomCode: null, clientId: crypto.randomUUID(), name: randomName };
+  return useSignal<Player>(initial);
+};
+
+const setPlayer = (playerSignal: any, update: Partial<Player>) => {
+  playerSignal.value = { ...playerSignal.value, ...update };
+  localStorage.setItem("playerState", JSON.stringify(playerSignal.value));
+};
 
 export const App = () => {
   const player = usePlayerSignal();
-  const players = useSignal<Players>([]);
+  const playersInRoom = useSignal<PlayersInRoom>([]);
   const error = useSignal<string | null>(null);
   const inLobby = useSignal(true);
   const params = new URLSearchParams(window.location.search);
@@ -19,11 +42,18 @@ export const App = () => {
     socket.connect();
     socket.emit(
       "joinRoom",
-      { roomCode: roomCodeFromQuery, clientId: player.value.clientId },
+      {
+        roomCode: roomCodeFromQuery,
+        clientId: player.value.clientId,
+        name: player.value.name,
+      },
       (response: any) => {
         if (response.success) {
-          setPlayer(player, { roomCode: roomCodeFromQuery });
-          players.value = response.players;
+          setPlayer(player, {
+            roomCode: roomCodeFromQuery,
+            quiz: response.quiz,
+          });
+          playersInRoom.value = response.playersInRoom;
           inLobby.value = false;
         } else {
           error.value = response.message;
@@ -31,18 +61,18 @@ export const App = () => {
       },
     );
 
-    const onRoomUpdate = (data: { players: Players }) => {
-      if (data.players.length === 0) {
-        players.value = [];
+    const onRoomUpdate = (data: { playersInRoom: PlayersInRoom }) => {
+      if (data.playersInRoom.length === 0) {
+        playersInRoom.value = [];
         window.history.pushState({}, "", "/");
         localStorage.clear();
         inLobby.value = true;
       }
-      players.value = data.players;
+      playersInRoom.value = data.playersInRoom;
     };
 
     const onRoomClosed = () => {
-      players.value = [];
+      playersInRoom.value = [];
       window.history.pushState({}, "", "/");
       localStorage.clear();
       inLobby.value = true;
@@ -60,14 +90,19 @@ export const App = () => {
   }, [roomCodeFromQuery]);
 
   const handleCreateRoom = () => {
+    console.log("success?");
     socket.connect();
     socket.emit(
       "createRoom",
-      { clientId: player.value.clientId },
+      {
+        clientId: player.value.clientId,
+        name: player.value.name,
+        quiz: player.value.quiz,
+      },
       (response: any) => {
         if (response.success) {
           setPlayer(player, { roomCode: response.roomCode });
-          players.value = response.players;
+          playersInRoom.value = response.playersInRoom;
           window.history.pushState({}, "", `/?room=${response.roomCode}`);
           inLobby.value = false;
         }
@@ -77,56 +112,30 @@ export const App = () => {
 
   const handleLeaveRoom = () => {
     socket.emit("leaveRoom", () => {
-      players.value = [];
+      playersInRoom.value = [];
       window.history.pushState({}, "", "/");
       localStorage.clear();
       inLobby.value = true;
+      window.location.reload();
     });
   };
 
-  const copyUrlToClipboard = async () => {
-    await navigator.clipboard.writeText(window.location.href);
-  };
-
   const isHost =
-    players.value.length > 0 &&
-    players.value[0].clientId === player.value.clientId;
+    playersInRoom.value.length > 0 &&
+    playersInRoom.value[0].clientId === player.value.clientId;
 
   return (
     <div class={""}>
-      <div class={""}>
-        {inLobby.value ? (
-          <>
-            <h1 class={""}>Quiz Room 🚀</h1>
-            <button class={""} onClick={handleCreateRoom}>
-              Create a New Room
-            </button>
-            <hr />
-          </>
-        ) : (
-          <>
-            <h1 class={""}>
-              Room Code:
-              <span class={""}>{player.value.roomCode}</span>
-            </h1>
-            <button class={""} onClick={copyUrlToClipboard}>
-              📋 Copy Share URL
-            </button>
-            <button onClick={handleLeaveRoom} class={""}>
-              {isHost ? "Leave Room & End Game" : "Leave Room"}
-            </button>
-            <h2>Players in this room:</h2>
-            <ul class={""}>
-              {players.value.map((p) => (
-                <li class={""} key={p.id}>
-                  {p.clientId} {p.clientId === player.value.clientId && "(You)"}
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-        {error.value && <div class={""}>{error.value}</div>}
-      </div>
+      {inLobby.value ? (
+        <Lobby player={player} handleSubmit={handleCreateRoom} />
+      ) : (
+        <Game
+          player={player}
+          playersInRoom={playersInRoom}
+          isHost={isHost}
+          handleLeaveRoom={handleLeaveRoom}
+        />
+      )}
     </div>
   );
 };
