@@ -1,7 +1,8 @@
-import express from "express";
-import { Server } from "socket.io";
 import { createServer } from "http";
+import { Server } from "socket.io";
 import path from "path";
+import fs from "fs";
+import url from "url";
 import type {
   ClientToServerEvents,
   ServerToClientEvents,
@@ -11,17 +12,31 @@ import type {
 import { Player } from "client/App";
 import { Quiz } from "client/components/Lobby";
 
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
-const app = express();
-const server = createServer(app);
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
+
+const server = createServer((req, res) => {
+  const filePath = path.join(
+    __dirname,
+    "../client",
+    req.url === "/" ? "/index.html" : req.url!,
+  );
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404);
+      res.end("Not Found");
+      return;
+    }
+    res.writeHead(200);
+    res.end(data);
+  });
+});
+
 const io = new Server<
   ClientToServerEvents,
   ServerToClientEvents,
   InterServerEvents,
   SocketData
 >(server, { cors: { origin: "*" } });
-
-app.use(express.static(path.join(__dirname, "../client")));
 
 const PORT = process.env.PORT || 4000;
 
@@ -118,5 +133,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });

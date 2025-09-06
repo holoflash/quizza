@@ -67,10 +67,12 @@ export const Lobby = ({
       };
     }
   };
+
   const onFormSubmit = (e: Event) => {
     e.preventDefault();
     handleSubmit();
   };
+
   return (
     <form className={styles.container} onSubmit={onFormSubmit} method="post">
       <h1 className={styles.title}>quizza</h1>
