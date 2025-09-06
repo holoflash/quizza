@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "tsx watch server/index.ts",
+    "deploy": "node client/server/server.js",
     "build": "vite build && tsc -p tsconfig.server.json",
     "lint": "eslint . --ext .ts,.tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write ."
