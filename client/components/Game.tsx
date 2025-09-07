@@ -71,6 +71,7 @@ const styles = {
     alignItems: "center",
     maxWidth: "480px",
     margin: "0 auto",
+    padding: "1rem",
   }),
   title: css({
     fontSize: "2rem",

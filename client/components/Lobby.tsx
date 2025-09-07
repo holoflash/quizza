@@ -36,14 +36,14 @@ export const Lobby = ({
   const handleQuestionChange = (
     e: h.JSX.TargetedEvent<HTMLInputElement, Event>,
   ) => {
-    quiz.value = { ...quiz.value, question: e.currentTarget.value.trim() };
+    quiz.value = { ...quiz.value, question: e.currentTarget.value };
   };
 
   const handleAlternativeChange = (id: string, value: string) => {
     quiz.value = {
       ...quiz.value,
       alternatives: quiz.value.alternatives.map((alt) =>
-        alt.id === id ? { ...alt, text: value.trim() } : alt,
+        alt.id === id ? { ...alt, text: value } : alt,
       ),
     };
   };
@@ -84,6 +84,7 @@ export const Lobby = ({
           value={quiz.value.question}
           onInput={handleQuestionChange}
           required
+          maxLength={120}
         />
       </div>
       <div className={styles.alternatives}>
@@ -98,6 +99,7 @@ export const Lobby = ({
                 handleAlternativeChange(alt.id, e.currentTarget.value)
               }
               required
+              maxLength={60}
             />
             {quiz.value.alternatives.length > 2 && (
               <Button
@@ -125,6 +127,7 @@ const styles = {
     gap: "1rem",
     maxWidth: "480px",
     margin: "0 auto",
+    padding: "1rem",
   }),
   title: css({
     fontSize: "2rem",
