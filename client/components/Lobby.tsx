@@ -82,7 +82,7 @@ export const Lobby = ({
           className={styles.input}
           type="text"
           value={quiz.value.question}
-          onChange={handleQuestionChange}
+          onInput={handleQuestionChange}
           required
         />
       </div>
@@ -94,7 +94,7 @@ export const Lobby = ({
               className={styles.input}
               type="text"
               value={alt.text}
-              onChange={(e) =>
+              onInput={(e) =>
                 handleAlternativeChange(alt.id, e.currentTarget.value)
               }
               required

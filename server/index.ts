@@ -21,10 +21,13 @@ const mimeTypes: Record<string, string> = {
 };
 
 const server = createServer((req, res) => {
+  const parsedUrl = url.parse(req.url!, true);
+  const pathname = parsedUrl.pathname || "/";
+
   const filePath = path.join(
     __dirname,
     "../client",
-    req.url === "/" ? "/index.html" : req.url!,
+    pathname === "/" ? "/index.html" : pathname,
   );
   fs.readFile(filePath, (err, data) => {
     if (err) {
