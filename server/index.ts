@@ -11,7 +11,6 @@ import type {
 } from "socketTypes";
 import { Player } from "client/App";
 import { Quiz } from "client/components/Lobby";
-import { generateRoomCode } from "./utils/generateRoomCode";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -57,6 +56,10 @@ const rooms: {
     | { hostClientId: string; playersInRoom: Player[]; quiz?: Quiz }
     | undefined;
 } = {};
+
+const generateRoomCode = () => {
+  return Math.random().toString(36).substring(2, 7).toUpperCase();
+};
 
 io.on("connection", (socket) => {
   socket.on("createRoom", async ({ clientId, name, quiz }, callback) => {
