@@ -1,4 +1,5 @@
 import { css } from "@emotion/css";
+import { colors } from "../core/theme";
 
 export const Button = ({
   label,
@@ -22,40 +23,39 @@ export const Button = ({
   );
 };
 
-export const baseButton = css({
-  color: "#fff",
+const baseButton = css({
   border: "none",
-  borderRadius: "6px",
-  padding: "0.5rem 1.2rem",
+  borderRadius: "4px",
+  padding: "0.5rem 1rem",
   width: "fit-content",
-  fontWeight: 600,
+  fontWeight: 400,
   cursor: "pointer",
-  marginTop: "0.5rem",
-  marginRight: "0.5rem",
-  transition: "background 0.2s",
+  fontSize: "1rem",
+  transition: "all 0.1s",
 });
 
 const styles = {
   button: css([
     baseButton,
     {
-      background: "#1976d2",
-      ":hover": {
-        background: "#1565c0",
+      backgroundColor: colors.text,
+      color: colors.cardBg,
+      "&:hover": {
+        backgroundColor: colors.secondary,
       },
     },
   ]),
   remove: css([
     baseButton,
     {
-      all: "unset",
-      fontWeight: "800",
+      backgroundColor: colors.cardBg,
+      color: colors.red,
+      padding: "0.5rem 0.75rem",
       fontSize: ".8rem",
-      textDecoration: "underline",
-      color: "black",
-      cursor: "pointer",
-      ":hover": {
-        color: "#b31a1aff",
+      fontWeight: 500,
+      "&:hover": {
+        backgroundColor: colors.red,
+        color: colors.cardBg,
       },
     },
   ]),

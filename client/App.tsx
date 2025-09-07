@@ -1,7 +1,7 @@
 import { useEffect } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { socket } from "./core/socketClient";
-import { Lobby, Quiz } from "./components/Lobby";
+import { Alternative, Lobby, Quiz } from "./components/Lobby";
 import { Game } from "./components/Game";
 import { randomName } from "./utils/getRandomName";
 
@@ -10,6 +10,7 @@ export type Player = {
   clientId: string;
   name: string;
   quiz?: Quiz;
+  votedFor?: Alternative["id"];
 };
 
 export type PlayersInRoom = Player[];
@@ -40,6 +41,7 @@ export const App = () => {
     if (!roomCodeFromQuery) return;
 
     socket.connect();
+
     socket.emit(
       "joinRoom",
       {
@@ -61,7 +63,10 @@ export const App = () => {
       },
     );
 
-    const onRoomUpdate = (data: { playersInRoom: PlayersInRoom }) => {
+    const onRoomUpdate = (data: {
+      playersInRoom: PlayersInRoom;
+      quiz?: Quiz;
+    }) => {
       if (data.playersInRoom.length === 0) {
         playersInRoom.value = [];
         window.history.pushState({}, "", "/");
@@ -69,6 +74,9 @@ export const App = () => {
         inLobby.value = true;
       }
       playersInRoom.value = data.playersInRoom;
+      if (data.quiz) {
+        player.value.quiz = data.quiz;
+      }
     };
 
     const onRoomClosed = () => {
@@ -76,11 +84,17 @@ export const App = () => {
       window.history.pushState({}, "", "/");
       localStorage.clear();
       inLobby.value = true;
-      alert("The host has ended the game. Returning to start page.");
+      alert("The host has closed the room. Returning to start page.");
     };
 
     socket.on("roomUpdate", onRoomUpdate);
-    socket.on("roomClosed", onRoomClosed);
+    socket.on("roomClosed", () => {
+      playersInRoom.value = [];
+      window.history.pushState({}, "", "/");
+      localStorage.clear();
+      inLobby.value = true;
+      alert("The host has closed the room. Returning to start page.");
+    });
 
     return () => {
       socket.disconnect();
@@ -110,6 +124,32 @@ export const App = () => {
     );
   };
 
+  const onVote = (alternativeId: Player["votedFor"]) => {
+    if (player.value.votedFor !== alternativeId) {
+      player.value.votedFor = alternativeId;
+      socket.emit(
+        "playerVoted",
+        {
+          roomCode: player.value.roomCode!,
+          clientId: player.value.clientId,
+          votedFor: player.value.votedFor!,
+        },
+        (response: any) => {
+          if (response.success) {
+            setPlayer(player, {
+              quiz: response.quiz,
+            });
+            playersInRoom.value = response.playersInRoom;
+          } else {
+            error.value = response.message;
+          }
+        },
+      );
+    } else {
+      error.value = "Your vote has already been registered";
+    }
+  };
+
   const handleLeaveRoom = () => {
     socket.emit("leaveRoom", () => {
       playersInRoom.value = [];
@@ -125,7 +165,7 @@ export const App = () => {
     playersInRoom.value[0].clientId === player.value.clientId;
 
   return (
-    <div class={""}>
+    <>
       {inLobby.value ? (
         <Lobby player={player} handleSubmit={handleCreateRoom} />
       ) : (
@@ -134,8 +174,9 @@ export const App = () => {
           playersInRoom={playersInRoom}
           isHost={isHost}
           handleLeaveRoom={handleLeaveRoom}
+          handleVote={onVote}
         />
       )}
-    </div>
+    </>
   );
 };

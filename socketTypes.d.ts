@@ -3,7 +3,7 @@ import { Quiz } from "client/components/Lobby";
 
 // Shared socket types for both client and server
 export interface ServerToClientEvents {
-  roomUpdate: (data: { playersInRoom: Player[] }) => void;
+  roomUpdate: (data: { playersInRoom: Player[]; quiz?: Quiz }) => void;
   roomClosed: () => void;
 }
 
@@ -24,6 +24,16 @@ export interface ClientToServerEvents {
       message?: string;
       playersInRoom?: Player[];
       quiz?: Quiz;
+    }) => void,
+  ) => void;
+
+  playerVoted: (
+    data: { roomCode: string; clientId: string; votedFor: string },
+    callback: (response: {
+      success: boolean;
+      quiz?: Quiz;
+      playersInRoom?: Player[];
+      message?: string;
     }) => void,
   ) => void;
 

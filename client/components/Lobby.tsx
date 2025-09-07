@@ -3,10 +3,12 @@ import { Signal, useSignal, useSignalEffect } from "@preact/signals";
 import { h } from "preact";
 import { css } from "@emotion/css";
 import { Button } from "./Button";
+import { colors } from "../core/theme";
 
-type Alternative = {
+export type Alternative = {
   id: string;
   text: string;
+  votes: number;
 };
 
 export type Quiz = {
@@ -24,8 +26,8 @@ export const Lobby = ({
   const quiz = useSignal<Quiz>({
     question: "",
     alternatives: [
-      { id: crypto.randomUUID(), text: "" },
-      { id: crypto.randomUUID(), text: "" },
+      { id: crypto.randomUUID(), text: "", votes: 0 },
+      { id: crypto.randomUUID(), text: "", votes: 0 },
     ],
   });
 
@@ -52,6 +54,7 @@ export const Lobby = ({
     const newAlternative: Alternative = {
       id: crypto.randomUUID(),
       text: "",
+      votes: 0,
     };
     quiz.value = {
       ...quiz.value,
@@ -76,9 +79,10 @@ export const Lobby = ({
   return (
     <form className={styles.container} onSubmit={onFormSubmit} method="post">
       <h1 className={styles.title}>quizza</h1>
-      <div className={styles.fullWidth}>
+      <div className={styles.inputContainer}>
+        <label className={styles.label}>Question</label>
         <input
-          placeholder={"Question"}
+          placeholder={"Your question here..."}
           className={styles.input}
           type="text"
           value={quiz.value.question}
@@ -88,6 +92,7 @@ export const Lobby = ({
         />
       </div>
       <div className={styles.alternatives}>
+        <label className={styles.label}>Options</label>
         {quiz.value.alternatives.map((alt, idx) => (
           <div className={styles.altRow} key={alt.id}>
             <input
@@ -121,53 +126,64 @@ export const Lobby = ({
 
 const styles = {
   container: css({
+    fontFamily: "system-ui, sans-serif",
+    maxWidth: "550px",
+    margin: "2rem auto",
+    padding: "2rem",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: "1rem",
-    maxWidth: "480px",
-    margin: "0 auto",
-    padding: "1rem",
+    gap: "1.5rem",
   }),
   title: css({
-    fontSize: "2rem",
-    fontWeight: 700,
-    color: "#1976d2",
-    marginBottom: "1rem",
+    fontSize: "3rem",
+    fontWeight: 800,
+    color: colors.primary,
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: "-1px",
   }),
   label: css({
-    fontWeight: 500,
-    color: "#333",
+    fontWeight: 600,
+    color: colors.title,
+    fontSize: "1rem",
     marginBottom: "0.5rem",
     display: "block",
+    textTransform: "uppercase",
+  }),
+  inputContainer: css({
+    width: "100%",
   }),
   input: css({
-    padding: "0.5rem 1rem",
-    borderRadius: "8px",
-    border: "1px solid #e0e0e0",
+    padding: "0.75rem 1rem",
+    border: `1px solid ${colors.border}`,
+    backgroundColor: colors.background,
+    color: colors.text,
     fontSize: "1rem",
     width: "100%",
     boxSizing: "border-box",
+    "&:focus": {
+      outline: "none",
+      border: `1px solid ${colors.primary}`,
+    },
+    "&::placeholder": {
+      color: colors.text,
+      opacity: 0.7,
+    },
   }),
   alternatives: css({
     width: "100%",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
-    gap: "0.75rem",
-    marginBottom: "1rem",
+    gap: "1rem",
   }),
   altRow: css({
     display: "flex",
     alignItems: "center",
-    gap: "0.5rem",
+    gap: "0.75rem",
   }),
   addButtonRow: css({
-    marginTop: "0.75rem",
-    display: "flex",
-    justifyContent: "center",
-  }),
-  fullWidth: css({
-    width: "100%",
+    marginTop: "0.5rem",
   }),
 };

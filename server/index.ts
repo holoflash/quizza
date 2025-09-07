@@ -11,6 +11,7 @@ import type {
 } from "socketTypes";
 import { Player } from "client/App";
 import { Quiz } from "client/components/Lobby";
+import { generateRoomCode } from "./utils/generateRoomCode";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -57,10 +58,6 @@ const rooms: {
     | undefined;
 } = {};
 
-const generateRoomCode = () => {
-  return Math.random().toString(36).substring(2, 7).toUpperCase();
-};
-
 io.on("connection", (socket) => {
   socket.on("createRoom", async ({ clientId, name, quiz }, callback) => {
     let roomCode = generateRoomCode();
@@ -79,7 +76,6 @@ io.on("connection", (socket) => {
     };
 
     rooms[roomCode] = newRoom;
-
     callback({ success: true, roomCode, playersInRoom: newRoom.playersInRoom });
   });
 
@@ -114,26 +110,16 @@ io.on("connection", (socket) => {
     const roomCode = socket.data.roomCode as string;
     const room = rooms[roomCode];
 
-    if (!room) {
-      console.log("room not found");
-      callback();
-      return;
-    }
-
-    if (socket.data.clientId === room.hostClientId) {
+    if (room && socket.data.clientId === room.hostClientId) {
       io.to(roomCode).emit("roomClosed");
       io.in(roomCode).socketsLeave(roomCode);
       delete rooms[roomCode];
-      console.log(
-        `Host ${socket.data.clientId} left. Room ${roomCode} deleted.`,
-      );
-    } else {
+    } else if (room) {
       room.playersInRoom = room.playersInRoom.filter(
         (player: Player) => player.clientId !== socket.data.clientId,
       );
       await socket.leave(roomCode);
       io.to(roomCode).emit("roomUpdate", { playersInRoom: room.playersInRoom });
-      console.log(`Player ${socket.id} left room ${roomCode}.`);
     }
 
     delete socket.data.roomCode;
@@ -141,6 +127,55 @@ io.on("connection", (socket) => {
 
     callback();
   });
+
+  socket.on(
+    "playerVoted",
+    async ({ roomCode, clientId, votedFor }, callback) => {
+      const room = rooms[roomCode];
+      if (!room || !room.quiz) {
+        return callback({ success: false, message: "failure" });
+      }
+
+      const player = room.playersInRoom.find(
+        (p: any) => p.clientId === clientId,
+      );
+      if (!player) {
+        return callback({ success: false, message: "Player not found" });
+      }
+
+      if (player.votedFor) {
+        const prevAlt = room.quiz.alternatives.find(
+          (alt: any) => alt.id === player.votedFor,
+        );
+        if (prevAlt && typeof prevAlt.votes === "number" && prevAlt.votes > 0) {
+          prevAlt.votes -= 1;
+        }
+      }
+
+      const newAlt = room.quiz.alternatives.find(
+        (alt: any) => alt.id === votedFor,
+      );
+      if (!newAlt) {
+        return callback({ success: false, message: "Alternative not found" });
+      }
+      if (typeof newAlt.votes !== "number") {
+        newAlt.votes = 0;
+      }
+      newAlt.votes += 1;
+      player.votedFor = votedFor;
+
+      callback({
+        success: true,
+        playersInRoom: room.playersInRoom,
+        quiz: room.quiz,
+      });
+
+      io.to(roomCode).emit("roomUpdate", {
+        playersInRoom: room.playersInRoom,
+        quiz: room.quiz,
+      });
+    },
+  );
 });
 
 server.listen(PORT, () => {
