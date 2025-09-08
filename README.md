@@ -8,7 +8,7 @@
 
 # Quizza
 
-A simple little app hacked together over the weekend for asking a question, providing answer alternatives, and allowing others to vote on one alternative.
+A simple little app hacked together over a weekend for asking a question, providing answer alternatives, and allowing others to vote on one alternative.
 
 ## Quizza uses
 <span>
