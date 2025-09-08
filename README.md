@@ -1,3 +1,9 @@
+### Roadmap
+- Allow guests in a room to add their own answer alternative
+- Allow the host to create multiple rounds of questions
+- Allow the host to broadcast a "whiteboard" to all guests in aroom between rounds
+- Sumarize results of a session
+
 # Quizza
 
 A simple little app hacked together over the weekend for asking a question, providing answer alternatives, and allowing others to vote on one alternative.
