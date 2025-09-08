@@ -3,6 +3,7 @@
 - Allow the host to create multiple rounds of questions
 - Allow the host to broadcast a "whiteboard" to all guests in aroom between rounds
 - Sumarize results of a session
+- Investigate Supabase integration for persistance and more stability on socket connects/disconnects
 
 # Quizza
 
