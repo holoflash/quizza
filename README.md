@@ -1,4 +1,5 @@
-### Roadmap
+### TODO
+- Refactor code and extract reused components
 - Allow guests in a room to add their own answer alternative
 - Allow the host to create multiple rounds of questions
 - Allow the host to broadcast a "whiteboard" to all guests in a room between rounds
@@ -9,7 +10,7 @@
 
 A simple little app hacked together over the weekend for asking a question, providing answer alternatives, and allowing others to vote on one alternative.
 
-### Quizza uses
+## Quizza uses
 <span>
   <img alt="Vite" src="https://img.shields.io/badge/vite-000?style=for-the-badge&logo=vite" />
   <img alt="Preact" src="https://img.shields.io/badge/preact-000?style=for-the-badge&logo=preact" />
